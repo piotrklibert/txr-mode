@@ -319,8 +319,8 @@
 (defconst txr-mode-var-re
   (rx
    (seq "@" (optional "{")
-        (group (minimal-match
-                (one-or-more alphanumeric)))
+        (group
+         (one-or-more (any alnum "_")))
         (or "}" eow))))
 
 
