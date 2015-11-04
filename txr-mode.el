@@ -15,6 +15,15 @@
         (char ?`)))))
 
 
+(defconst txr-mode-regexp-re
+  (rx
+   (group
+    "/"
+    (minimal-match
+     (zero-or-more
+      (not (any "/"))))
+    "/")))
+
 (defconst txr-mode-keywords
   (list "%e%" "%pi%" "*" "*args*"
         "*args-full*" "*e*" "*flo-dig*" "*flo-epsilon*"
@@ -283,7 +292,7 @@
         "with-update-expander" "wrap" "wrap*" "zap"
         "zerop" "zip"))
 
-(defconst txr-mode-keywords-re
+(defconst txr-mode-builtins-re
   (concat
    "\\(" (s-join "\\|" (--map (concat "(\\<" it "\\>") txr-mode-keywords)) "\\)"))
 
@@ -316,24 +325,23 @@
 
 
 (defconst txr-mode-kwargs-re
-  (rx
-   (group
-    ":"
-    (one-or-more alphanumeric))))
+  (rx (group
+       ":"(one-or-more alphanumeric))))
 
 
 (defconst txr-font-lock-keywords
   (list
    (list txr-mode-quoted-string-re   1 font-lock-string-face)
+   (list txr-mode-regexp-re          1 font-lock-string-face)
    (list txr-mode-var-re             1 font-lock-constant-face)
    (list txr-mode-comment-re         1 font-lock-comment-face)
    (list txr-mode-function-re        1 font-lock-keyword-face)
-   (list txr-mode-keywords-re        1 font-lock-builtin-face)
+   (list txr-mode-builtins-re        1 font-lock-builtin-face)
    (list txr-mode-kwargs-re          1 font-lock-constant-face)))
 
 
 (define-derived-mode txr-mode lisp-mode "TXR"
-  "Major mode for editing JSON files"
+  "Major mode for editing TXR scripts"
   (set
    (make-local-variable 'font-lock-defaults) '(txr-font-lock-keywords t)))
 
@@ -341,6 +349,7 @@
 ;;;###autoload
 (add-to-list 'auto-mode-alist
              '("\\.txr$" . txr-mode))
+
 
 (provide 'txr-mode)
 ;;; txr-mode.el ends here
