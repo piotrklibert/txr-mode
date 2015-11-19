@@ -1,18 +1,28 @@
 (require 'rx)
 (require 'auto-complete)
 
+(defalias 'ap 'apply-partially)
+
+(setq txr-docs (with-temp-buffer
+                 (insert-file "/home/cji/poligon/uwolnic_docsy/ladne_docsy.el")
+                 (beginning-of-buffer)
+                 (read (current-buffer))))
+
+
 (defun ac-source-txr-candidates ()
   txr-mode-keywords)
+
 (defun txr-document-symbol (symbol)
-  (let ((x (assoc symbol (car (cdr x)))))
-    (concat "    " (nth 2 x) "\n\n" (nth 3 x))))
+  (let ((x (assoc (or (and (stringp symbol) symbol)
+                      (symbol-name symbol))
+                  txr-docs)))
+    (when x
+      (concat "    " (nth 2 x) "\n\n" (nth 3 x)))))
 
 (defconst ac-source-txr
   `((candidates . ac-source-txr-candidates)
     (document . txr-document-symbol)))
 
-;; (setq (nth 1 old-sources) ac-sources)
-;; (setf ac-sources '(ac-source-txr))
 
 (defconst txr-mode-quoted-string-re
   (rx
@@ -47,19 +57,24 @@
 (defconst get-symbols-command
   (concat "txr -e " (format "'%s'" get-symbols-txr)))
 
+(defun txr-sort-keywords (keywords)
+  (sort keywords
+        (lambda (a b)
+          (> (length a) (length b)))))
+
 (defconst txr-mode-keywords
-  (append (list "end")
-          (sort
-           (mapcar (lambda (x)
-                     (format "%s" x))
-                   (read
-                    (shell-command-to-string get-symbols-command)))
-           'string<))
-  )
+  (let
+      ((txr-symbols (shell-command-to-string get-symbols-command))
+       (extra-keywords '(end collect col rep repeat)))
+    (->> (read txr-symbols)
+      (append extra-keywords)
+      (mapcar (ap 'format "%s"))
+      txr-sort-keywords)))
 
 (defconst txr-mode-builtins-re
-  (concat
-   "\\(" (s-join "\\|" (--map (concat "(\\<" it "\\>") txr-mode-keywords)) "\\)"))
+  (let
+      ((keyword-regexps (--map (concat "(\\<" it "\\>") txr-mode-keywords)))
+    (concat "\\(" (s-join "\\|" keyword-regexps) "\\)")))
 
 
 (defconst txr-mode-comment-re
@@ -107,14 +122,13 @@
 
 (define-derived-mode txr-mode lisp-mode "TXR"
   "Major mode for editing TXR scripts"
-  (set
-   (make-local-variable 'font-lock-defaults) '(txr-font-lock-keywords t))
+  (set (make-local-variable 'font-lock-defaults)
+       '(txr-font-lock-keywords t))
   (add-to-list 'ac-sources 'ac-source-txr))
-;; ac-sources
+
 
 ;;;###autoload
-(add-to-list 'auto-mode-alist
-             '("\\.txr$" . txr-mode))
+(add-to-list 'auto-mode-alist '("\\.txr$" . txr-mode))
 
 
 (provide 'txr-mode)
